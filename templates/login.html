@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Page</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <header class="header">
+        <h1>Agile Project Management Dashboard</h1>
+    </header>
+
+    <div class="login-box">
+        <div class="logo-container">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" class="login-logo">
+        </div>
+        <h1>Login</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="error-message">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+        <form method="POST" action="{{ url_for('login') }}">
+            <label for="username">User Name</label>
+            <input type="text" id="username" name="username" placeholder="Enter your username" required>
+
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" placeholder="Enter your password" required>
+
+            <div class="forgot-password-container">
+                <a href="{{ url_for('forgotpassword') }}" class="forgot-password">Forgot Password?</a>
+            </div>
+
+            <button type="submit">Login</button>
+
+            <p class="signup-text">
+                Don't have an account? <a href="{{ url_for('signup') }}" class="signup-link">Signup</a>
+            </p>
+        </form>
+    </div>
+</body>
+</html>
