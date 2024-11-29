@@ -5,6 +5,9 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from send_email import send_email
+from itsdangerous import URLSafeTimedSerializer
+from flask import render_template_string
+
 
 
 
@@ -13,7 +16,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key' 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///agile_dashboard.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_ECHO'] = True
+serializer = URLSafeTimedSerializer(app.secret_key)
 
 
 
@@ -23,15 +26,30 @@ db = SQLAlchemy(app)
 
 class User(db.Model):
     __tablename__ = 'users'
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(150), unique=True, nullable=False)
-    email = db.Column(db.String(150), unique=True, nullable=False)
-    password = db.Column(db.String(150), nullable=False)
+    UserID = db.Column(db.Integer, primary_key=True)
+    UserName = db.Column(db.String(150), unique=True, nullable=False)
+    Email = db.Column(db.String(150), unique=True, nullable=False)
+    Password = db.Column(db.String(150), nullable=False)
 
 
 # Route to display the login form
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        
+        # Query the database for the user
+        user = User.query.filter_by(UserName=username).first()
+        
+        if user and check_password_hash(user.Password, password):
+            flash('Login successful!', 'success')
+            return redirect(url_for('dashboard'))
+        else:
+            flash('Invalid username or password', 'danger')
+            return redirect(url_for('login'))
+    
+    return render_template('login.html')
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
@@ -51,39 +69,48 @@ def login():
 
 @app.route('/forgotpassword', methods=['GET', 'POST'])
 def forgotpassword():
+    email = request.form.get('email', '').strip()
+    print(email)
     if request.method == 'POST':
         email = request.form.get('email', '').strip()
+        print(email)
+
+         # Generate token valid for 15 minutes (900 seconds)
+        token = serializer.dumps(email, salt='password-reset-salt')
+
+        # Generate the reset link with the token
+        reset_link = url_for('reset_password', token=token, _external=True)
+
         sender_email = "ankitaisadoctor@gmail.com"
         sender_password = "ihkskbdmdlitzbbh"  # Use an app password if using Gmail
-        receiver_email = email
-        password_to_send = "T01254"  
+        receiver_email = "aayushaayush438@gmail.com"
+        subject = "Password Reset Request"
         
-        send_email(sender_email, sender_password, receiver_email, password_to_send)
+        send_email(sender_email, sender_password, receiver_email, subject, reset_link)
         flash('Email sent successfully!', 'success')
-        return redirect(url_for('login'))
-
-    
-         
+        return redirect(url_for('login'))   
     return render_template('forgotpassword.html')
         
 
 
 
-@app.route('/reset-password', methods=['GET', 'POST'])
-def reset_password():
+@app.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    
+    try:
+        # Validate token (expires in 900 seconds = 15 minutes)
+        email = serializer.loads(token, salt='password-reset-salt', max_age=900)
+    except Exception as e:
+        flash('The reset link is invalid or has expired.', 'danger')
+        return redirect(url_for('forgotpassword'))
+
+
     if request.method == 'POST':
-        new_password = request.form['new_password']
-        confirm_password = request.form['confirm_password']
-
-        if new_password == confirm_password:
-            # Logic to reset the user's password in the database
-            flash('Your password has been successfully reset!', 'success')
-            return redirect(url_for('login'))
-        else:
-            flash('Passwords do not match. Please try again.', 'error')
-
-    return render_template('reset_password.html')
-
+            new_password = request.form['new-password']
+            # Here, you should hash the new password and update the user's password in the database
+            flash('Your password has been updated successfully!', 'success')
+            return redirect(url_for('reset_password'))
+    return render_template('reset_password.html', token=token)
 
 
 
@@ -110,12 +137,12 @@ def signup():
             return redirect(url_for('signup'))
 
         # Check if username or email already exists
-        existing_user = User.query.filter_by(username=username).first()
+        existing_user = User.query.filter_by(UserName=username).first()
         if existing_user:
             flash("Username already exists!", "error")
             return redirect(url_for('signup'))
 
-        existing_email = User.query.filter_by(email=email).first()
+        existing_email = User.query.filter_by(Email=email).first()
         if existing_email:
             flash("Email already exists!", "error")
             return redirect(url_for('signup'))
@@ -124,7 +151,7 @@ def signup():
         hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
 
         # Create new user and add to the database
-        new_user = User(username=username, email=email, password=hashed_password)
+        new_user = User(UserName=username, Email=email, Password=hashed_password)
         db.session.add(new_user)
         db.session.commit()
         
@@ -132,6 +159,7 @@ def signup():
         return redirect(url_for('login'))
 
     return render_template('signup.html')
+    
 
 # Main block to run the app
 if __name__ == '__main__':
