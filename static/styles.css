@@ -19,7 +19,7 @@ body, html {
 /* Box styling */
 .login-box {
     width: 503px;
-    height: 450px;
+    height: 500px;
     padding: 20px;
     padding-top: 60px; 
     background: #ffffff;
@@ -148,7 +148,24 @@ body, html {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); 
 }
 
+/* Dropdown (select) styling */
+.login-box select {
+    width: 73%; /* Matches input field width */
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    outline: none;
+    background-color: #ffffff;
+    font-size: 16px;
+}
 
+/* Optional: Change arrow icon for dropdown */
+.login-box select:focus {
+    border-color: #007bff;
+    outline: none;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
 
 /*---------------------------------------------
 Forgot Password

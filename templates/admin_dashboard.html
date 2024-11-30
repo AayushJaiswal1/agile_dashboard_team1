@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Form with Add More</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .container {
+      background: #fff;
+      padding: 20px 30px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      max-width: 900px;
+      width: 100%;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 1.8rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f0f0f0;
+      font-weight: bold;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"] {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+
+    .status {
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .status.approved {
+      color: green;
+    }
+
+    .status.pending {
+      color: orange;
+    }
+
+    .status.denied {
+      color: red;
+    }
+
+    .btn {
+      display: block;
+      width: 100%;
+      background: #007bff;
+      color: #fff;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      font-size: 1rem;
+      cursor: pointer;
+      text-align: center;
+      transition: background-color 0.3s ease;
+      margin-top: 10px;
+    }
+
+    .btn:hover {
+      background: #0056b3;
+    }
+
+    .btn-add {
+      background: #28a745;
+    }
+
+    .btn-add:hover {
+      background: #218838;
+    }
+
+    .error {
+      color: red;
+      font-size: 0.9rem;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Admin Form</h1>
+    <form id="adminForm">
+      <table id="userTable">
+        <thead>
+          <tr>
+            <th>Username</th>
+            <th>Password</th>
+            <th>Email</th>
+            <th>Role (Editable)</th>
+            <th>Approved Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><input type="text" name="username[]" placeholder="Enter username" required></td>
+            <td><input type="password" name="password[]" placeholder="Enter password" required></td>
+            <td><input type="email" name="email[]" placeholder="Enter email" required></td>
+            <td><input type="text" name="role[]" class="role" placeholder="Enter role (user or admin)" required></td>
+            <td class="status">Status Pending</td>
+          </tr>
+        </tbody>
+      </table>
+      <div id="roleError" class="error"></div>
+      <button type="button" class="btn btn-add" id="addRow">Add More</button>
+      <button type="submit" class="btn">Submit</button>
+    </form>
+  </div>
+
+  <script>
+    const userTable = document.getElementById("userTable").querySelector("tbody");
+    const addRowButton = document.getElementById("addRow");
+    const roleError = document.getElementById("roleError");
+
+    // Function to dynamically update approval status based on the role
+    const updateStatus = (roleInput, statusCell) => {
+      const role = roleInput.value.trim().toLowerCase();
+      if (role === "user" || role === "admin") {
+        statusCell.textContent = "Approved";
+        statusCell.className = "status approved";
+      } else if (role === "") {
+        statusCell.textContent = "Status Pending";
+        statusCell.className = "status";
+      } else {
+        statusCell.textContent = "Access Denied";
+        statusCell.className = "status denied";
+      }
+    };
+
+    // Add event listener to dynamically update status for the first row
+    document.querySelectorAll(".role").forEach((roleInput) => {
+      const statusCell = roleInput.parentElement.nextElementSibling;
+      roleInput.addEventListener("input", () => updateStatus(roleInput, statusCell));
+    });
+
+    // Add more rows dynamically
+    addRowButton.addEventListener("click", () => {
+      const newRow = document.createElement("tr");
+      newRow.innerHTML = `
+        <td><input type="text" name="username[]" placeholder="Enter username" required></td>
+        <td><input type="password" name="password[]" placeholder="Enter password" required></td>
+        <td><input type="email" name="email[]" placeholder="Enter email" required></td>
+        <td><input type="text" name="role[]" class="role" placeholder="Enter role (user or admin)" required></td>
+        <td class="status">Status Pending</td>
+      `;
+      userTable.appendChild(newRow);
+
+      // Attach event listener to new role input for status updates
+      const roleInput = newRow.querySelector(".role");
+      const statusCell = newRow.querySelector(".status");
+      roleInput.addEventListener("input", () => updateStatus(roleInput, statusCell));
+    });
+
+    // Handle form submission
+    document.getElementById("adminForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      let validForm = true;
+
+      // Check if all roles are either 'user' or 'admin'
+      const roles = document.querySelectorAll('input[name="role[]"]');
+      roles.forEach((roleInput) => {
+        const role = roleInput.value.trim().toLowerCase();
+        if (role !== "user" && role !== "admin") {
+          validForm = false;
+          roleError.textContent = "Role must be 'user' or 'admin'.";
+        } else {
+          roleError.textContent = ""; // Clear error if valid
+        }
+      });
+
+      if (validForm) {
+        const formData = Array.from(userTable.querySelectorAll("tr")).map((row) => {
+          const username = row.querySelector('input[name="username[]"]').value;
+          const password = row.querySelector('input[name="password[]"]').value;
+          const email = row.querySelector('input[name="email[]"]').value;
+          const role = row.querySelector('input[name="role[]"]').value;
+          const status = row.querySelector(".status").textContent;
+          return { username, password, email, role, status };
+        });
+
+        console.log("Form Data:", formData);
+        alert("Form Submitted!");
+        this.reset();
+        userTable.innerHTML = ""; // Clear all rows except the first one
+        addRowButton.click(); // Add one initial row
+      }
+    });
+  </script>
+</body>
+</html>
